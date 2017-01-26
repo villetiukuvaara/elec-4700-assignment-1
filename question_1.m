@@ -1,5 +1,10 @@
 %%Question 1
 
+m0 = 9.10938356e-31;
+m = 0.26*m0;
+T = 300;
+k = 1.38064852e-23;
+
 %% Question 1
 % To calculate the thermal energy, it is noted that there are two degrees
 % of freedom for the electrons. Using Maxwell's principle of equipartition
@@ -19,14 +24,6 @@ l = vth*0.2e-12;
 
 % Set up the simulation
 
-m0 = 9.10938356e-31;
-m = 0.26*m0;
-T = 300;
-k = 1.38064852e-23;
-
-
-%%
-% Set up parameters for the simulation:
 width = 100e-9;
 length = 200e-9;
 population_size = 1000;
@@ -65,7 +62,7 @@ for i = 1:iterations
     state(j,2) = -state(j,2);
     state(j,4) = -state(j,4);
     
-    temperature(i) = k/m/population_size*(sum(state(:,3).^2) + sum(state(:,4).^2));
+    temperature(i) = (sum(state(:,3).^2) + sum(state(:,4).^2))*m/k/2/population_size;
     
     for j=1:plot_population
         trajectories(i, (2*j):(2*j+1)) = state(j, 1:2);
