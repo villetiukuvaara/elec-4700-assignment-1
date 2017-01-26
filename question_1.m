@@ -115,4 +115,3 @@ if(~show_movie)
     ylabel('Temperature (K)');
 end
 
-% Store the positions and velocities of the electrons
