@@ -26,10 +26,10 @@ l = vth*0.2e-12;
 
 width = 100e-9;
 length = 200e-9;
-population_size = 1000;
-plot_population = 10;
+population_size = 5000;
+plot_population = 20;
 time_step = width/vth/100;
-iterations = 1000;
+iterations = 100;
 show_movie = 1;
 p_scat = 1 - exp(-time_step/0.2e-12);
 
@@ -65,37 +65,34 @@ for i = 1:iterations
     state(j,2) = -state(j,2);
     state(j,4) = -state(j,4);
     
-    %for p=1:population_size
-    %    if(rand > p_scat)
-    %        state(p,3:4) = [random(v_pdf) random(v_pdf)];
-    %    end
-    %end
-    
+    % Scatter particles
     j = rand(population_size, 1) < p_scat;
     state(j,3:4) = random(v_pdf, [sum(j),2]);
     
+    % Record the temperature
     temperature(i) = (sum(state(:,3).^2) + sum(state(:,4).^2))*m/k/2/population_size;
     
+    % Record positions for subset of particles that will be graphed
+    % if show_movie = false
     for j=1:plot_population
         trajectories(i, (2*j):(2*j+1)) = state(j, 1:2);
     end 
     
+    % Update the movie every 5 iterations
     if show_movie && mod(i,5) == 0
         figure(1);
         subplot(2,1,1);
         hold off;
-        plot(state(1:plot_population,1), state(1:plot_population,2), 'o');
-        axis([0 length 0 width]);
+        plot(state(1:plot_population,1)./1e-9, state(1:plot_population,2)./1e-9, 'o');
+        axis([0 length/1e-9 0 width/1e-9]);
         title(sprintf('Trajectories for %d of %d Electrons with Fixed Velocity',...
         plot_population, population_size));
-        xlabel('x (m)');
-        ylabel('y (m)');
-        
-        %figure(2);
+        xlabel('x (nm)');
+        ylabel('y (nm)');
         if i > 1
             subplot(2,1,2);
             hold off;
-            plot(time_step*(1:i), temperature(1:i));
+            plot(time_step*(0:i-1), temperature(1:i));
             axis([0 time_step*iterations 0 max(temperature)*1.2]);
             title('Semiconductor Temperature');
             xlabel('Time (s)');
@@ -105,15 +102,27 @@ for i = 1:iterations
     end
 end
 
-if ~show_movie
-    figure(1);
-    title(sprintf('Electron Trajectories for %d of %d Electrons with Fixed Velocity',...
-        plot_population, population_size));
-    xlabel('x (m)');
-    ylabel('y (m)');
-    hold on;
-    for i=1:plot_population
-        plot(trajectories(:,i*2), trajectories(:,i*2+1));
-    end
+% Show trajectories after the movie is over
+figure(1);
+subplot(2,1,1);
+title(sprintf('Electron Trajectories for %d of %d Electrons with Fixed Velocity',...
+    plot_population, population_size));
+xlabel('x (nm)');
+ylabel('y (nm)');
+axis([0 length/1e-9 0 width/1e-9]);
+hold on;
+for i=1:plot_population
+    plot(trajectories(:,i*2)./1e-9, trajectories(:,i*2+1)./1e-9, '.');
 end
+
+if(~show_movie)
+    subplot(2,1,2);
+    hold off;
+    plot(time_step*(0:iterations-1), temperature);
+    axis([0 time_step*iterations 0 max(temperature)*1.2]);
+    title('Semiconductor Temperature');
+    xlabel('Time (s)');
+    ylabel('Temperature (K)');
+end
+
 % Store the positions and velocities of the electrons
