@@ -88,7 +88,7 @@ for i = 1:iterations
         hold off;
         plot(state(1:plot_population,1)./1e-9, state(1:plot_population,2)./1e-9, 'o');
         axis([0 length/1e-9 0 width/1e-9]);
-        title(sprintf('Trajectories for %d of %d Electrons with Fixed Velocity',...
+        title(sprintf('Trajectories for %d of %d Electrons',...
         plot_population, population_size));
         xlabel('x (nm)');
         ylabel('y (nm)');
@@ -115,7 +115,7 @@ end
 % Show trajectories after the movie is over
 figure(1);
 subplot(3,1,1);
-title(sprintf('Electron Trajectories for %d of %d Electrons with Fixed Velocity',...
+title(sprintf('Trajectories for %d of %d Electrons',...
     plot_population, population_size));
 xlabel('x (nm)');
 ylabel('y (nm)');

@@ -29,7 +29,7 @@ length = 200e-9;
 population_size = 5000;
 plot_population = 20;
 time_step = width/vth/100;
-iterations = 100;
+iterations = 1000;
 show_movie = 1;
 p_scat = 1 - exp(-time_step/0.2e-12);
 
@@ -75,39 +75,54 @@ for i = 1:iterations
     new_state(j,2) = -state(j,2);
     new_state(j,4) = -state(j,4);
     
+    state = new_state;
+    new_state = state;
+    
     % Look for particles that have "entered" a box and move them to
     % where they should be. Note that boxes should not overlap for this
     % to work
     for j=1:population_size
-        box_num = in_box(new_state(j,1:2), boxes);
-        if(box_num == 0) continue;
-        end
-        
-        if(state(j,3) > 0 && state(j,1) > boxes(box_num, 1))
-            new_state(j,1) = 2*boxes(box_num, 1) - state(j,1);
-            new_state(j,3) = -state(j,3);
-        end
-        if(state(j,3) < 0 && state(j,1) < boxes(box_num,2))
-            new_state(j,2) = 2*boxes(box_num,2) - state(j,1);
-            new_state(j,3) = -state(j,3);
-        end
-        
-        if(state(j,4) > 0 && state(j,2) > boxes(box_num, 3))
-            new_state(j,1) = 2*boxes(box_num, 3) - state(j,2);
-            new_state(j,4) = -state(j,4);
-        end
-        if(state(j,4) < 0 && state(j,2) < boxes(box_num,4))
-            new_state(j,2) = 2*boxes(box_num,4) - state(j,2);
-            new_state(j,4) = -state(j,4);
+        box_num = in_box(state(j,1:2), boxes);
+        while(box_num ~= 0)
+            x_dist = 0;
+            new_x = 0;
+            if(state(j,3) > 0)
+                x_dist = state(j,1) - boxes(box_num,1);
+                new_x = boxes(box_num,1) - x_dist;
+            else
+                x_dist = boxes(box_num,2) - state(j,1);
+                new_x = boxes(box_num,2) + x_dist;
+            end
+            
+            y_dist = 0;
+            new_y = 0;
+            if(state(j,4) > 0)
+                y_dist = state(j,2) - boxes(box_num, 3);
+                new_y = boxes(box_num, 3) - y_dist;
+            else
+                y_dist = boxes(box_num, 4) - state(j,2);
+                new_y = boxes(box_num, 4) + y_dist;
+            end
+            
+            if(x_dist < y_dist)
+                state(j,1) = new_x;
+                state(j,3) = -state(j,3);
+            else
+                state(j,2) = new_y;
+                state(j,4) = -state(j,4);
+            end
+            
+            %state(:,1:2) = new_state(:,1:2);
+            box_num = in_box(state(j,1:2), boxes);
         end
     end
     
     
     % Scatter particles
     j = rand(population_size, 1) < p_scat;
-    new_state(j,3:4) = random(v_pdf, [sum(j),2]);
+    state(j,3:4) = random(v_pdf, [sum(j),2]);
     
-    state = new_state;
+    %state = new_state;
     
     % Record the temperature
     temperature(i) = (sum(state(:,3).^2) + sum(state(:,4).^2))*m/k/2/population_size;
@@ -119,9 +134,9 @@ for i = 1:iterations
     end 
     
     % Update the movie every 5 iterations
-    if show_movie && mod(i,5) == 0
+    if show_movie && mod(i,2) == 0
         figure(1);
-        subplot(2,1,1);
+        subplot(3,1,1);
         hold off;
         plot(state(1:plot_population,1)./1e-9, state(1:plot_population,2)./1e-9, 'o');
         hold on;
@@ -133,12 +148,12 @@ for i = 1:iterations
         end
         
         axis([0 length/1e-9 0 width/1e-9]);
-        title(sprintf('Trajectories for %d of %d Electrons with Fixed Velocity',...
+        title(sprintf('Trajectories for %d of %d Electrons',...
         plot_population, population_size));
         xlabel('x (nm)');
         ylabel('y (nm)');
         if i > 1
-            subplot(2,1,2);
+            subplot(3,1,2);
             hold off;
             plot(time_step*(0:i-1), temperature(1:i));
             axis([0 time_step*iterations min(temperature(1:i))*0.98 max(temperature)*1.02]);
@@ -146,14 +161,21 @@ for i = 1:iterations
             xlabel('Time (s)');
             ylabel('Temperature (K)');
         end
+        subplot(3,1,3);
+        v = sqrt(state(:,3).^2 + state(:,4).^2);
+        title('Histogram of Electron Speeds');
+        histogram(v);
+        xlabel('Speed (m/s)');
+        ylabel('Number of particles');
+        
         pause(0.05);
     end
 end
 
 % Show trajectories after the movie is over
 figure(1);
-subplot(2,1,1);
-title(sprintf('Electron Trajectories for %d of %d Electrons with Fixed Velocity',...
+subplot(3,1,1);
+title(sprintf('Electron Trajectories for %d of %d Electrons',...
     plot_population, population_size));
 xlabel('x (nm)');
 ylabel('y (nm)');
@@ -171,7 +193,7 @@ for j=1:size(boxes,1)
 end
 
 if(~show_movie)
-    subplot(2,1,2);
+    subplot(3,1,2);
     hold off;
     plot(time_step*(0:iterations-1), temperature);
     axis([0 time_step*iterations min(temperature)*0.98 max(temperature)*1.02]);
@@ -179,5 +201,12 @@ if(~show_movie)
     xlabel('Time (s)');
     ylabel('Temperature (K)');
 end
+
+subplot(3,1,3);
+v = sqrt(state(:,3).^2 + state(:,4).^2);
+title('Histogram of Electron Speeds');
+histogram(v);
+xlabel('Speed (m/s)');
+ylabel('Number of particles');
 
 % Store the positions and velocities of the electrons
