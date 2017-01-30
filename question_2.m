@@ -1,36 +1,6 @@
-%%Question 2
+%% Part 2: Collisions with Mean Free Path
 
-m0 = 9.10938356e-31;
-m = 0.26*m0;
-T = 300;
-k = 1.38064852e-23;
-
-%% Question 1
-% To calculate the thermal energy, it is noted that there are two degrees
-% of freedom for the electrons. Using Maxwell's principle of equipartition
-% of energy,
-%
-% $$\overline{KE}=\frac{1}{2}kT = 2(\frac{1}{2}m\overline{v^2}) \Rightarrow \overline{v^2}=\frac{2kT}{m}$$
-
-vth = sqrt(2*k*T/m)
-
-%%
-% Or 18.7 um/s. The mean free path, $l$, is simply
-
-l = vth*0.2e-12;
-
-%%
-% Thus the mean free path is about 37.4 nm.
-
-% Set up the simulation
-
-width = 100e-9;
-length = 200e-9;
-population_size = 10000;
-plot_population = 20;
-time_step = width/vth/100;
-iterations = 100;
-show_movie = 1;
+% Calculate the scattering probability in one time step
 p_scat = 1 - exp(-time_step/0.2e-12);
 
 % Each row corresponds to an electron with the position and velocities
@@ -39,16 +9,26 @@ state = zeros(population_size, 4);
 trajectories = zeros(iterations, plot_population*2);
 temperature = zeros(iterations,1);
 
+% The distribution of velocities in x and y is Gaussian, with a 
+% standard deviation of sqrt(k*T/m). This results in an overall
+% Maxwell-Boltzmann velocity distribution at temperature T
 v_pdf = makedist('Normal', 'mu', 0, 'sigma', sqrt(k*T/m));
 
 % Generate an initial population
 for i = 1:population_size
     angle = rand*2*pi;
-    state(i,:) = [length*rand width*rand random(v_pdf) random(v_pdf)];
+    state(i,:) = [length*rand height*rand random(v_pdf) random(v_pdf)];
 end
 
-%% Calculate the average 
+%%
+% The average velocity should be calculated to be correct.
+
 avg = sqrt(sum(state(:,3).^2)/population_size + sum(state(:,4).^2)/population_size)
+
+%%
+% This returns a velocity of about 18.7 km/s, which is correct.
+% This varies a little bit, since the initial velocities are random with a 
+% MB distribution.
 
 for i = 1:iterations
     %Update positions
@@ -60,8 +40,8 @@ for i = 1:iterations
     j = state(:,1) < 0;
     state(j,1) = state(j,1) + length;
     
-    j = state(:,2) > width;
-    state(j,2) = 2*width - state(j,2);
+    j = state(:,2) > height;
+    state(j,2) = 2*height - state(j,2);
     state(j,4) = -state(j,4);
     
     j = state(:,2) < 0;
@@ -76,19 +56,19 @@ for i = 1:iterations
     temperature(i) = (sum(state(:,3).^2) + sum(state(:,4).^2))*m/k/2/population_size;
     
     % Record positions for subset of particles that will be graphed
-    % if show_movie = false
+    % if show_movie = 0
     for j=1:plot_population
         trajectories(i, (2*j):(2*j+1)) = state(j, 1:2);
     end 
     
     % Update the movie every 5 iterations
     if show_movie && mod(i,5) == 0
-        figure(1);
+        figure(2);
         subplot(3,1,1);
         hold off;
         plot(state(1:plot_population,1)./1e-9, state(1:plot_population,2)./1e-9, 'o');
-        axis([0 length/1e-9 0 width/1e-9]);
-        title(sprintf('Trajectories for %d of %d Electrons',...
+        axis([0 length/1e-9 0 height/1e-9]);
+        title(sprintf('Trajectories for %d of %d Electrons (Part 2)',...
         plot_population, population_size));
         xlabel('x (nm)');
         ylabel('y (nm)');
@@ -96,11 +76,13 @@ for i = 1:iterations
             subplot(3,1,2);
             hold off;
             plot(time_step*(0:i-1), temperature(1:i));
-            axis([0 time_step*iterations 0 max(temperature)*1.2]);
+            axis([0 time_step*iterations min(temperature)*0.98 max(temperature)*1.02]);
             title('Semiconductor Temperature');
             xlabel('Time (s)');
             ylabel('Temperature (K)');
         end
+        
+        % Show histogram of speeds
         subplot(3,1,3);
         v = sqrt(state(:,3).^2 + state(:,4).^2);
         title('Histogram of Electron Speeds');
@@ -113,33 +95,33 @@ for i = 1:iterations
 end
 
 % Show trajectories after the movie is over
-figure(1);
+figure(2);
 subplot(3,1,1);
-title(sprintf('Trajectories for %d of %d Electrons',...
+title(sprintf('Trajectories for %d of %d Electrons (Part 2)',...
     plot_population, population_size));
 xlabel('x (nm)');
 ylabel('y (nm)');
-axis([0 length/1e-9 0 width/1e-9]);
+axis([0 length/1e-9 0 height/1e-9]);
 hold on;
 for i=1:plot_population
     plot(trajectories(:,i*2)./1e-9, trajectories(:,i*2+1)./1e-9, '.');
 end
 
+% Show temperature plot over time
 if(~show_movie)
     subplot(3,1,2);
     hold off;
     plot(time_step*(0:iterations-1), temperature);
-    axis([0 time_step*iterations 0 max(temperature)*1.2]);
+    axis([0 time_step*iterations min(temperature)*0.98 max(temperature)*1.02]);
     title('Semiconductor Temperature');
     xlabel('Time (s)');
     ylabel('Temperature (K)');
 end
 
+% Show speed histogram
 subplot(3,1,3);
 v = sqrt(state(:,3).^2 + state(:,4).^2);
 title('Histogram of Electron Speeds');
 histogram(v);
 xlabel('Speed (m/s)');
 ylabel('Number of particles');
-
-% Store the positions and velocities of the electrons
